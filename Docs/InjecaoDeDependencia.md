@@ -154,6 +154,9 @@ Scoped - Similar ao transiente, porém este tem tempo de vida limitado e o objet
 O uso é essencial e obrigatório se você pretende que sua aplicação cresça, seja expansível e possa ter manutenção simples.
 
 
+### Código do projeto
+https://github.com/anckizes/DotNetIoc
+
 #### Bibliografia:
 
 http://www.javacreed.com/why-should-we-use-dependency-injection/
