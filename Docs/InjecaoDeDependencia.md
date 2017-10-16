@@ -1,11 +1,9 @@
-﻿# Intro:
+## Pra começar: O que é injeção de dependencia?
 
-Pra começar: O que é injeção de dependencia?
-
- "Hollywood Principle:" Don't Call Us, We'll Call You.
+ _"Hollywood Principle:" Don't Call Us, We'll Call You._
 
 
-Na vida prática: Você precisa ir ao mercado. Para executar esta tarefa suas dependências são:
+Exemplo na vida real: Você precisa ir ao mercado. Para executar esta tarefa suas dependências são:
  - Verificar se há água no carburador do carro suficiente para o trajeto;
  - Verificar num mapa o trajeto mais curto;
  - Ouvir na rádio local se há algum impedimento no caminho;
@@ -21,9 +19,35 @@ O objeto recebe (é injetado nele) os demais objetos que são necessários à el
 A injeção de dependências é ferramenta para conquistar melhorias de código como: Desacoplação de classe, reutilização de c�digo, isolamento para teste de unidade melhor, manter a responsabilidade �nica da classe etc.
 
 
-# Na prática.
+#### Na prática.
 
 - Cenário ruim em C#
+
+```cs
+public class WorkingRobot
+{
+    public void Work()
+    {
+        Database database = new Database();
+        FileWriter fileWriter = new FileWriter();
+        MailNotification mailNotification = new MailNotification();
+        PidgeonNotification pidgeonNotification = new PidgeonNotification();
+        bool isABadThingUsingAnimalsForSendingMessages = true;
+
+        database.Select();
+        fileWriter.Write();
+        database.UpdateChanges();
+        if (isABadThingUsingAnimalsForSendingMessages)
+        {
+            mailNotification.SendNotification();
+        }
+        else
+        {
+            pidgeonNotification.SendNotification();
+        }
+    }
+}
+```
 
 Neste código existe é claro que a classe Worker depende de Database, Database, MailNotification, PidgeonNotification. Qualquer modificação no contrato destas classes exige uma modificação na classe worker.
 Também é muito ruim testar este código. No teste você obrigatoriamente teria que escrever o arquivo, salvar no banco e até mandar um e-mail para que seu processo chegue ao fim.
@@ -38,23 +62,74 @@ Para solucionar esse cenário, podemos usar alguns tipos de injeção de depend�
 
 - Correção em cada tipo de injeção
 
-### Injeção por construtor.
+#### Injeção por construtor.
+
+```cs
+public class WorkingRobot
+{
+    private readonly Database _database;
+    private readonly FileWriter _fileWriter;
+    private readonly Notification _notification;
+
+    public WorkingRobot(Database database, FileWriter fileWriter, Notification notification)
+    {
+        _database = database;
+        _fileWriter = fileWriter;
+        _notification = notification;
+    }
+    public void Work()
+    {
+        _database.Select();
+        _fileWriter.Write();
+        _database.UpdateChanges();
+        _notification.SendNotification();
+    }
+}
+```
+
 Quando injetamos por construtor, fazemos que a classe quando instanciada já receba todas as dependências que ela precise. Que a classe que recebe a injeção já "nasça" (seja instanciado) com todos os objetos que ela precisa carregados nela. Assim basta a classe principal saber como trabalhar sobre os objetos que ela tem, não importando como estes já vieram configurados e carregados.
-No exemplo abaixo fizemos a classe principal instanciar os objetos necessários e também escolher qual tipo de notificação será enviada. E, voilà, ela funciona exatamento como anterior.
+No exemplo abaixo fizemos a class principal instanciar os objetos necessários e também escolher qual tipo de notificação será enviada. E, voilà, ela funciona exatamento como anterior.
 
 
-### Injeção por setter.
+#### Injeção por setter.
+
+```cs
+public class WorkingRobot
+{
+    public Database database { get; set; }
+    public FileWriter fileWriter { get; set; }
+    public Notification notification { get; set; }
+
+    public void Work()
+    {
+        if (database == null)
+        throw new Exception("Database cannot be null!");
+
+        if (fileWriter == null)
+        throw new Exception("File cannot be null!");
+
+        if (notification == null)
+        throw new Exception("Notification cannot be null!");
+
+
+        database.Select();
+        fileWriter.Write();
+        database.UpdateChanges();
+        notification.SendNotification();
+    }
+}
+```
 
 Quando injetamos por setter, o objeto dependente possui um atributo que pode receber qualquer instância de um tipo (geralmente uma interface). E durante a execução é setado no objeto dependente a instância da interface desejada. Tendo em vista que o objeto dependente usará apenas métodos da interface, e que por contrato, todas as implementações dessa interface implementarão estes métodos, a classe dependente não precisa se preocupar como será executado o método, apenas o executará.
 
 
-### Resultados
+#### Resultados
 
 Nestes cenários corrigidos o teste pode ser feito somente da classe worker, mockando as suas dependências, assim termos testado de fato a unidade worker. Para testar as demais classes, deve ser feito um teste unitário para cada uma delas. Isoladamente.
 Além dos testes também elevamos a manutenabilidade do código, pois, caso seja necessário ter uma regra mais complexa na escolha de uma das dependências, esta será feita fora da classe worker (até dentro de uma classe nova que construirá uma instância do tipo que o worker precisa, vamos falar mais sobre Factory no post sobrepadrões de projeto).
 
 
-### Ferramentas de injeção
+#### Ferramentas de injeção
 
 Não é obrigatório o uso de um container de IoC para usar injeção de dependência, mas o uso deles não garante que você está fazendo de fato injeção. Ao registrar sua dependência em um container, este injetará automaticamente o objeto correspondente (baseado no registro já executado, por isso é interessante o manter no start de sua aplicação).
 
@@ -64,7 +139,7 @@ Segue uma lista com benchmarks e comparações de features.
 http://www.palmmedia.de/blog/2011/8/30/ioc-container-benchmark-performance-comparison
 
 
-### Tempo de vida de uma injeção
+#### Tempo de vida de uma injeção
 
 Transient - Uma nova instância do componente será criada a cada solicitação no container. Se múltiplas solicitações orem feitas, cada solicitante terá sua própria instância. Estas instâncias não são geridas pelo container, ele não as destruirá no dispose, esta será uma responsabilidade do caller.
 
@@ -74,12 +149,12 @@ Scoped - Similar ao transiente, porém este tem tempo de vida limitado e o objet
 
 
 
-# Conclusões
+#### Conclusões
 
 O uso é essencial e obrigatório se você pretende que sua aplicação cresça, seja expansível e possa ter manutenção simples.
 
 
-Bibliografia:
+#### Bibliografia:
 
 http://www.javacreed.com/why-should-we-use-dependency-injection/
 
